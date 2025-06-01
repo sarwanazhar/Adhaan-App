@@ -1,13 +1,13 @@
 import { storage } from "./storage"
 import { getAdhaanTime } from "./getAdhaanTime"
-import notifee, { AndroidStyle, AuthorizationStatus, TimestampTrigger, TriggerType } from '@notifee/react-native';
+import notifee, { AndroidStyle, AndroidVisibility, AuthorizationStatus, TimestampTrigger, TriggerType } from '@notifee/react-native';
 import TrackPlayer from "react-native-track-player";
 import { tracks } from "../constants";
 import { NativeModules, Platform } from 'react-native';
 const { AdhaanModule } = NativeModules;
 
 type Data = {
-    Date: string;
+    date: string;
     fajr: string;
     dhuhr: string;
     asr: string;
@@ -58,6 +58,9 @@ export const scheduleNotification = async ({hour, minute, title, second}: {hour:
     const trigger: TimestampTrigger = {
         type: TriggerType.TIMESTAMP,
         timestamp: date.getTime(),
+        alarmManager: {
+          allowWhileIdle: true,
+        }
     }
     await notifee.createTriggerNotification(
         {
@@ -66,21 +69,32 @@ export const scheduleNotification = async ({hour, minute, title, second}: {hour:
         body: 'Adhaan Time is here',
         android: {
             channelId: 'default',
-            smallIcon: 'ic_stat_name',
             color: '#00FF00',
-            largeIcon: 'ic_stat_name',
-            style: {
-                type: AndroidStyle.BIGTEXT,
-                text: 'Adhaan Time is here',
-            }
+            visibility: AndroidVisibility.PUBLIC,
         },
     }, trigger)
 }
 
 
 export const setNotification = async () => {
-    const data = await storage.getString('data')
+    const data = await storage.getString('currentDayData')
     const parsedData: Data = JSON.parse(data || '{}')
+    if(parsedData.date){
+      const date = new Date()
+      const [year, month,day] = parsedData.date.split("-")
+      if(date.getMonth() + 1 != parseInt(month) && date.getDate() != parseInt(day)){
+        const location = await storage.getString('location')
+        const parsedLocation = JSON.parse(location || '{}')
+        if(Object.keys(parsedLocation).length > 0){
+          const { country, city } = parsedLocation;
+          const data: Data = await getAdhaanTime({country, city})
+          storage.delete('currentDayData')
+          storage.set('currentDayData', JSON.stringify(data))
+          console.log('Date is not today')
+          return;
+        } 
+      }
+    }
     if(Object.keys(parsedData).length > 0){
         const isFajr = await storage.getBoolean('fajr')
         const isDuhr = await storage.getBoolean('zuhr')
@@ -163,5 +177,4 @@ export const startNativeAdhaanService = () => {
     AdhaanModule.startAdhaanService();
   }
 };
-
 

@@ -7,7 +7,7 @@ import App from './src/App';
 import {name as appName} from './app.json';
 import BackgroundFetch from 'react-native-background-fetch';
 import notifee, { EventType } from '@notifee/react-native';
-import { setNotification, startNativeAdhaanService } from './src/libs/setNotification';
+import { setNotification, setNotificationTest, startNativeAdhaanService } from './src/libs/setNotification';
 import TrackPlayer from 'react-native-track-player';
 import { PlaybackService, Start } from './service';
 import { AppKilledPlaybackBehavior, Capability } from 'react-native-track-player';
@@ -18,6 +18,7 @@ notifee.onBackgroundEvent(async ({ type, detail }) => {
     type === EventType.DELIVERED &&
     (!detail.notification.data || detail.notification.data.foreground !== 'true')
   ) {
+    setNotification();
     startNativeAdhaanService()
   } else if (type === EventType.DISMISSED) {
     console.log('Dismissed');
@@ -55,19 +56,3 @@ AppRegistry.registerComponent(appName, () => App);
 BackgroundFetch.registerHeadlessTask(myHeadlessTask);
 
 TrackPlayer.registerPlaybackService(() => PlaybackService);
-
-async function startForegroundServiceTest() {
-  const channelId = await notifee.createChannel({
-    id: 'default',
-    name: 'Default Channel',
-  });
-  await notifee.displayNotification({
-    title: 'Test Foreground',
-    body: 'Testing foreground service',
-    android: {
-      channelId,
-      asForegroundService: true,
-    },
-    data: { foreground: 'true' },
-  });
-}

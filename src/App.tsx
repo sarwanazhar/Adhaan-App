@@ -4,10 +4,11 @@ import HomeScreen from './screen/home';
 import axios from 'axios';
 import BackgroundFetch from 'react-native-background-fetch';
 import { storage } from './libs/storage';
-import { requestPermissionNotification, setNotification } from './libs/setNotification';
+import { requestPermissionNotification } from './libs/setNotification';
 import notifee from '@notifee/react-native';
 import TrackPlayer from 'react-native-track-player';
 import { tracks } from './constants';
+import { Text, View } from 'react-native';
 
 const App = () => {
   const [country, setCountry] = useState('');
@@ -22,11 +23,11 @@ const App = () => {
         setCity(parsedLocation.city)
       }else{
         try {
-          const response = await axios.get('http://ip-api.com/json/');
-          const { country, city } = response.data;
-          setCountry(country);
+          const response = await axios.get('https://api.bigdatacloud.net/data/reverse-geocode-client');
+          const { countryName, city } = response.data;
+          setCountry(countryName);
           setCity(city);
-          storage.set('location', JSON.stringify({country, city}))
+          storage.set('location', JSON.stringify({country:countryName, city}))
         } catch (error) {
           console.error('Error fetching location data:', error);
         }
@@ -36,20 +37,6 @@ const App = () => {
     getCountryAndCity();
   }, []);
 
-  const showForegroundNotification = async () => {
-    const channelId = await notifee.createChannel({
-      id: 'default',
-      name: 'Default Channel',
-    });
-    await notifee.displayNotification({
-      title: 'Adhaan Playing',
-      body: 'The Adhaan is being played.',
-      android: {
-        channelId,
-        asForegroundService: true,
-      },
-    });
-  };
 
   useEffect(() => {
     const configureBackgroundFetch = async () => {
@@ -59,7 +46,6 @@ const App = () => {
       startOnBoot: true,
       enableHeadless: true,
     }, async (taskId) => {
-      await setNotification()
       console.log('BackgroundFetch event received', taskId);
       }, (error) => { 
         console.log('BackgroundFetch error', error);
@@ -86,7 +72,13 @@ const App = () => {
     });
   }, []);
 
-  return <HomeScreen country={country} city={city} />;
+  if(country == "" || city == ""){
+    return <View style={{flex:1, justifyContent:"center", alignItems:"center", backgroundColor:"#000"}}>
+      <Text style={{color:"#fff"}}>Loading...</Text>
+    </View>
+  }else{
+    return <HomeScreen country={country} city={city} />;
+  }
 };
 
 export default App;

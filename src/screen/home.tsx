@@ -6,10 +6,11 @@ import { storage } from '../libs/storage'
 import TrackPlayer from 'react-native-track-player'
 import { tracks } from '../constants'
 import notifee from '@notifee/react-native'
-import { startNativeAdhaanService } from '../libs/setNotification'
+import { setNotification, startNativeAdhaanService } from '../libs/setNotification'
 
 const HomeScreen = ({ country, city }: { country: string, city: string }) => {
   const [islamicDate, setIslamicDate] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [prayerTimes, setPrayerTimes] = useState({
     fajr: false,
     zuhr: false,
@@ -42,6 +43,7 @@ const HomeScreen = ({ country, city }: { country: string, city: string }) => {
           isha: data.isha ? data.isha.split(':') : []
         });
         setIslamicDate(data.hijri)
+        setIsLoading(false)
       } catch (error) {
         console.error('Error fetching prayer times:', error);
         setPrayerTime({
@@ -79,7 +81,17 @@ const HomeScreen = ({ country, city }: { country: string, city: string }) => {
     };
     setup();
   }, []);
+  useEffect(() => {
+    if (!isLoading) {
+      setNotification(); // Schedule the notification after loading is complete
+    }
+  }, [isLoading]);
 
+  if(isLoading){
+    return <View className='flex-1 justify-center items-center bg-[#000]'>
+      <Text className='text-white text-2xl font-bold'>Loading...</Text>
+    </View>
+  } else {
   return (
     <SafeAreaView className='bg-[#d5f2e3] h-full w-full'>
       <ScrollView>
@@ -195,7 +207,7 @@ const HomeScreen = ({ country, city }: { country: string, city: string }) => {
         </View>
       </ScrollView>
     </SafeAreaView>
-  )
+  )}
 }
 
 export default HomeScreen
